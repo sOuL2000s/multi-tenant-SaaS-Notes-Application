@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    // The `baseUrl` and `paths` below help with module resolution,
+    // but for a simple project with relative imports, they might not be strictly necessary
+    // if TS is correctly picking up the project root.
+    // Let's rely on relative imports mostly.
+    "baseUrl": "./", // Relative to tsconfig.json location (i.e., the 'api' folder)
+    "paths": {
+      "@prisma/client": ["node_modules/@prisma/client"], // Explicitly help TS find prisma client types
+      // If you wanted to use absolute paths like '@auth/...' later, you'd configure them here
+      // e.g., "@auth/*": ["src/auth/*"]
+    }
+  },
+  // Include all TypeScript files in `src`, `prisma` folder, and type declaration files.
+  // This directly includes `seed.ts` and allows `src` as well.
+  "include": ["src/**/*.ts", "prisma/**/*.ts", "src/types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

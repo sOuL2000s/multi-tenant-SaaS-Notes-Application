@@ -1,0 +1,1854 @@
+
+--- START FILE: .gitignore ---
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+.report/
+
+# Runtime data
+*.uuid
+*.pid
+*.seed
+*.pid.lock
+
+# Directory for output of 'npm pack'
+*.tgz
+
+# NodeJS
+node_modules/
+dist/
+build/
+.env
+.env.local
+.DS_Store
+
+--- END FILE: .gitignore ---
+
+--- START FILE: combined.py ---
+
+import os
+
+def combine_files_to_single_file(root_dir, output_filename="combined_project_files.txt"):
+    """
+    Combines the content of all files in a directory into a single file,
+    excluding 'node_modules' directories and 'package-lock.json' files.
+
+    Args:
+        root_dir (str): The root directory of the project.
+        output_filename (str): The name of the output file.
+    """
+    combined_content = []
+    excluded_dirs = ['node_modules', '.git', '.vscode', '.idea', 'dist', 'build']
+    excluded_files = ['package-lock.json', 'yarn.lock', 'bun.lockb'] # Added .env as it might contain sensitive info
+
+    print(f"Starting to combine files from: {root_dir}")
+    print(f"Excluding directories: {excluded_dirs}")
+    print(f"Excluding files: {excluded_files}")
+
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        # Modify dirnames in-place to skip excluded directories
+        dirnames[:] = [d for d in dirnames if d not in excluded_dirs]
+
+        for filename in filenames:
+            if filename in excluded_files:
+                print(f"Skipping excluded file: {os.path.join(dirpath, filename)}")
+                continue
+
+            file_path = os.path.join(dirpath, filename)
+            # Make path relative to root_dir for the header
+            relative_file_path = os.path.relpath(file_path, root_dir)
+
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                combined_content.append(f"\n--- START FILE: {relative_file_path} ---\n\n")
+                combined_content.append(content)
+                combined_content.append(f"\n\n--- END FILE: {relative_file_path} ---\n")
+                print(f"Included file: {relative_file_path}")
+            except UnicodeDecodeError:
+                print(f"Skipping binary or undecodable file (UnicodeDecodeError): {relative_file_path}")
+            except Exception as e:
+                print(f"Error reading file {relative_file_path}: {e}")
+
+    output_path = os.path.join(root_dir, output_filename)
+    try:
+        with open(output_path, 'w', encoding='utf-8') as outfile:
+            outfile.write("".join(combined_content))
+        print(f"\nSuccessfully combined all files into: {output_path}")
+    except Exception as e:
+        print(f"Error writing output file {output_path}: {e}")
+
+if __name__ == "__main__":
+    # Get the current working directory where the script is run
+    # This assumes you run the script from your project's root directory
+    project_root = os.getcwd()
+    combine_files_to_single_file(project_root)
+
+
+--- END FILE: combined.py ---
+
+--- START FILE: api\.env ---
+
+DATABASE_URL="postgresql://neondb_owner:npg_CNpzeP92yhVT@ep-cool-art-a14i6s1p-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+JWT_SECRET="g26FqQ8yD4vK0jX7nS8e5bW3rYpFmUoLpIcHdVzTqAsBwXyZc1tGfRhPjKmVN9uO0aEwJQLiZbRsXeCcVbNmA4zYx3W2v1UuTtSsRrQqPpOoNnMmLlKk"
+PORT=5000
+
+
+--- END FILE: api\.env ---
+
+--- START FILE: api\.env.example ---
+
+
+
+--- END FILE: api\.env.example ---
+
+--- START FILE: api\package.json ---
+
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "Multi-tenant SaaS Notes API",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:seed": "npx prisma db seed",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.14",
+    "nodemon": "^3.0.2",
+    "prisma": "^5.7.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0",
+    "@vercel/node": "^5.3.22",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.4"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}
+
+
+--- END FILE: api\package.json ---
+
+--- START FILE: api\tsconfig.json ---
+
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    // The `baseUrl` and `paths` below help with module resolution,
+    // but for a simple project with relative imports, they might not be strictly necessary
+    // if TS is correctly picking up the project root.
+    // Let's rely on relative imports mostly.
+    "baseUrl": "./", // Relative to tsconfig.json location (i.e., the 'api' folder)
+    "paths": {
+      "@prisma/client": ["node_modules/@prisma/client"], // Explicitly help TS find prisma client types
+      // If you wanted to use absolute paths like '@auth/...' later, you'd configure them here
+      // e.g., "@auth/*": ["src/auth/*"]
+    }
+  },
+  // Include all TypeScript files in `src`, `prisma` folder, and type declaration files.
+  // This directly includes `seed.ts` and allows `src` as well.
+  "include": ["src/**/*.ts", "prisma/**/*.ts", "src/types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+
+--- END FILE: api\tsconfig.json ---
+
+--- START FILE: api\vercel.json ---
+
+{
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/api/index.ts"
+        }
+    ]
+}
+
+--- END FILE: api\vercel.json ---
+
+--- START FILE: api\prisma\schema.prisma ---
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum TenantPlan {
+  FREE
+  PRO
+}
+
+model Tenant {
+  id    String   @id @default(uuid())
+  name  String   @unique
+  slug  String   @unique // For URL-friendly identifiers, e.g., acme, globex
+  plan  TenantPlan @default(FREE)
+  users User[]
+  notes Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(MEMBER)
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notes        Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, tenantId]) // Ensure email is unique within a tenant
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict) // Don't delete notes if user is deleted
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+--- END FILE: api\prisma\schema.prisma ---
+
+--- START FILE: api\prisma\seed.ts ---
+
+import { PrismaClient, UserRole, TenantPlan } from '@prisma/client';
+import bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  const hashedPassword = await bcrypt.hash('password', 10);
+
+  // Create Tenants
+  const acme = await prisma.tenant.upsert({
+    where: { slug: 'acme' },
+    update: {},
+    create: {
+      name: 'Acme Corporation',
+      slug: 'acme',
+      plan: TenantPlan.FREE, // Start as Free plan
+    },
+  });
+
+  const globex = await prisma.tenant.upsert({
+    where: { slug: 'globex' },
+    update: {},
+    create: {
+      name: 'Globex Inc.',
+      slug: 'globex',
+      plan: TenantPlan.FREE, // Start as Free plan
+    },
+  });
+
+  console.log({ acme, globex });
+
+  // Create Users for Acme
+  await prisma.user.upsert({
+    where: { email_tenantId: { email: 'admin@acme.test', tenantId: acme.id } },
+    update: {},
+    create: {
+      email: 'admin@acme.test',
+      passwordHash: hashedPassword,
+      role: UserRole.ADMIN,
+      tenantId: acme.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email_tenantId: { email: 'user@acme.test', tenantId: acme.id } },
+    update: {},
+    create: {
+      email: 'user@acme.test',
+      passwordHash: hashedPassword,
+      role: UserRole.MEMBER,
+      tenantId: acme.id,
+    },
+  });
+
+  // Create Users for Globex
+  await prisma.user.upsert({
+    where: { email_tenantId: { email: 'admin@globex.test', tenantId: globex.id } },
+    update: {},
+    create: {
+      email: 'admin@globex.test',
+      passwordHash: hashedPassword,
+      role: UserRole.ADMIN,
+      tenantId: globex.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email_tenantId: { email: 'user@globex.test', tenantId: globex.id } },
+    update: {},
+    create: {
+      email: 'user@globex.test',
+      passwordHash: hashedPassword,
+      role: UserRole.MEMBER,
+      tenantId: globex.id,
+    },
+  });
+
+  console.log('Users created/updated.');
+
+  // Create some initial notes (optional)
+  const acmeUser = await prisma.user.findUnique({
+    where: { email_tenantId: { email: 'user@acme.test', tenantId: acme.id } },
+  });
+  if (acmeUser) {
+    await prisma.note.upsert({
+      where: { id: 'acme-note-1' }, // Dummy ID for upsert
+      update: { title: 'Acme Initial Note 1', content: 'This is the first note for Acme.', userId: acmeUser.id, tenantId: acme.id },
+      create: {
+        id: 'acme-note-1',
+        title: 'Acme Initial Note 1',
+        content: 'This is the first note for Acme.',
+        userId: acmeUser.id,
+        tenantId: acme.id,
+      },
+    });
+    await prisma.note.upsert({
+      where: { id: 'acme-note-2' },
+      update: { title: 'Acme Initial Note 2', content: 'Another important note for Acme.', userId: acmeUser.id, tenantId: acme.id },
+      create: {
+        id: 'acme-note-2',
+        title: 'Acme Initial Note 2',
+        content: 'Another important note for Acme.',
+        userId: acmeUser.id,
+        tenantId: acme.id,
+      },
+    });
+  }
+
+  const globexAdmin = await prisma.user.findUnique({
+    where: { email_tenantId: { email: 'admin@globex.test', tenantId: globex.id } },
+  });
+  if (globexAdmin) {
+    await prisma.note.upsert({
+      where: { id: 'globex-note-1' },
+      update: { title: 'Globex Admin Note', content: 'Admin created this note for Globex.', userId: globexAdmin.id, tenantId: globex.id },
+      create: {
+        id: 'globex-note-1',
+        title: 'Globex Admin Note',
+        content: 'Admin created this note for Globex.',
+        userId: globexAdmin.id,
+        tenantId: globex.id,
+      },
+    });
+  }
+
+  console.log('Notes created/updated.');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+
+--- END FILE: api\prisma\seed.ts ---
+
+--- START FILE: api\prisma\migrations\migration_lock.toml ---
+
+# Please do not edit this file manually
+# It should be added in your version-control system (i.e. Git)
+provider = "postgresql"
+
+--- END FILE: api\prisma\migrations\migration_lock.toml ---
+
+--- START FILE: api\prisma\migrations\20250913072228_init\migration.sql ---
+
+-- CreateEnum
+CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'MEMBER');
+
+-- CreateEnum
+CREATE TYPE "TenantPlan" AS ENUM ('FREE', 'PRO');
+
+-- CreateTable
+CREATE TABLE "Tenant" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "plan" "TenantPlan" NOT NULL DEFAULT 'FREE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Tenant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "role" "UserRole" NOT NULL DEFAULT 'MEMBER',
+    "tenantId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Note" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "content" TEXT,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Note_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Tenant_name_key" ON "Tenant"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Tenant_slug_key" ON "Tenant"("slug");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_tenantId_key" ON "User"("email", "tenantId");
+
+-- CreateIndex
+CREATE INDEX "Note_tenantId_idx" ON "Note"("tenantId");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Note" ADD CONSTRAINT "Note_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Note" ADD CONSTRAINT "Note_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+--- END FILE: api\prisma\migrations\20250913072228_init\migration.sql ---
+
+--- START FILE: api\src\index.ts ---
+
+import { app } from './server';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+// Vercel serverless function handler
+export default async function (req: VercelRequest, res: VercelResponse) {
+  // Pass the Vercel request/response objects to Express
+  app(req, res);
+}
+
+--- END FILE: api\src\index.ts ---
+
+--- START FILE: api\src\routes.ts ---
+
+import { Router } from 'express';
+import { login } from './auth/auth.controller';
+import { authenticateJWT, authorizeRole, checkSubscriptionLimit } from './middleware/auth.middleware';
+import {
+  createNote,
+  getNotes,
+  getNoteById,
+  updateNote,
+  deleteNote,
+} from './notes/notes.controller';
+import { upgradeTenantPlan } from './tenants/tenants.controller';
+import { validate } from './middleware/validation.middleware';
+import { loginSchema } from './auth/auth.validation';
+import { createNoteSchema, updateNoteSchema } from './notes/notes.validation';
+import { upgradeTenantPlanSchema } from './tenants/tenants.validation';
+
+const router = Router();
+
+// Authentication Routes
+router.post('/auth/login', validate(loginSchema), login);
+
+// Health Check (can be outside /api prefix in server.ts, but including here for consistency)
+router.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
+// Tenant Routes (Admin only)
+router.post('/tenants/:slug/upgrade', authenticateJWT, authorizeRole(['ADMIN']), validate(upgradeTenantPlanSchema), upgradeTenantPlan);
+
+// Notes Routes (Member & Admin)
+router.post('/notes', authenticateJWT, authorizeRole(['MEMBER', 'ADMIN']), checkSubscriptionLimit, validate(createNoteSchema), createNote);
+router.get('/notes', authenticateJWT, authorizeRole(['MEMBER', 'ADMIN']), getNotes);
+router.get('/notes/:id', authenticateJWT, authorizeRole(['MEMBER', 'ADMIN']), getNoteById);
+router.put('/notes/:id', authenticateJWT, authorizeRole(['MEMBER', 'ADMIN']), validate(updateNoteSchema), updateNote);
+router.delete('/notes/:id', authenticateJWT, authorizeRole(['MEMBER', 'ADMIN']), deleteNote);
+
+
+export { router };
+
+--- END FILE: api\src\routes.ts ---
+
+--- START FILE: api\src\server.ts ---
+
+import 'dotenv/config'; // Load .env file at the very top
+import express from 'express';
+import cors from 'cors';
+import { router } from './routes';
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors()); // Enable CORS for all origins, as required. For production, restrict this.
+app.use(express.json());
+
+// API Routes
+app.use('/api', router); // All routes are prefixed with /api
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// For local development, start the server directly
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+// Export the app for Vercel serverless function
+export { app };
+
+--- END FILE: api\src\server.ts ---
+
+--- START FILE: api\src\auth\auth.controller.ts ---
+
+import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
+import { generateToken } from '../lib/jwt';
+import prisma from '../lib/prisma';
+import { LoginInput } from './auth.validation';
+
+export async function login(req: Request<{}, {}, LoginInput>, res: Response) {
+  const { email, password } = req.body;
+
+  try {
+    const user = await prisma.user.findFirst({ // Use findFirst to handle unique constraint on email_tenantId
+      where: { email },
+      include: {
+        tenant: true
+      }
+    });
+
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+      tenantSlug: user.tenant.slug,
+    });
+
+    res.json({ token, user: { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId, tenantName: user.tenant.name, tenantSlug: user.tenant.slug } });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+--- END FILE: api\src\auth\auth.controller.ts ---
+
+--- START FILE: api\src\auth\auth.validation.ts ---
+
+import { z } from 'zod';
+
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+--- END FILE: api\src\auth\auth.validation.ts ---
+
+--- START FILE: api\src\lib\jwt.ts ---
+
+import jwt from 'jsonwebtoken';
+import { UserRole } from '@prisma/client';
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
+
+export interface AuthTokenPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+  tenantId: string;
+  tenantSlug: string;
+}
+
+export function generateToken(payload: AuthTokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
+}
+
+export function verifyToken(token: string): AuthTokenPayload {
+  return jwt.verify(token, JWT_SECRET) as AuthTokenPayload;
+}
+
+--- END FILE: api\src\lib\jwt.ts ---
+
+--- START FILE: api\src\lib\prisma.ts ---
+
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export default prisma;
+
+--- END FILE: api\src\lib\prisma.ts ---
+
+--- START FILE: api\src\middleware\auth.middleware.ts ---
+
+import { Request, Response, NextFunction } from 'express';
+import { verifyToken, AuthTokenPayload } from '../lib/jwt';
+import { UserRole, TenantPlan } from '@prisma/client';
+import prisma from '../lib/prisma';
+
+// Extend the Request type to include user information
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: AuthTokenPayload;
+  }
+}
+
+export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Authentication token missing or malformed' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const user = verifyToken(token);
+    req.user = user; // Attach user payload to the request
+    next();
+  } catch (error) {
+    console.error('JWT verification failed:', error);
+    return res.status(403).json({ message: 'Invalid or expired token' });
+  }
+}
+
+export function authorizeRole(allowedRoles: UserRole[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+
+    next();
+  };
+}
+
+export async function checkSubscriptionLimit(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user.tenantId },
+      select: { plan: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    if (tenant.plan === TenantPlan.FREE) {
+      const notesCount = await prisma.note.count({
+        where: {
+          tenantId: req.user.tenantId,
+        },
+      });
+
+      if (notesCount >= 3) {
+        return res.status(403).json({ message: 'Free plan limit reached (max 3 notes). Upgrade to Pro for unlimited notes.' });
+      }
+    }
+    next();
+  } catch (error) {
+    console.error('Error checking subscription limit:', error);
+    res.status(500).json({ message: 'Internal server error while checking subscription' });
+  }
+}
+
+--- END FILE: api\src\middleware\auth.middleware.ts ---
+
+--- START FILE: api\src\middleware\validation.middleware.ts ---
+
+import { Request, Response, NextFunction } from 'express';
+import { AnyZodObject } from 'zod';
+
+export const validate = (schema: AnyZodObject) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+      next();
+    } catch (error: any) {
+      return res.status(400).json(error.errors);
+    }
+  };
+
+--- END FILE: api\src\middleware\validation.middleware.ts ---
+
+--- START FILE: api\src\notes\notes.controller.ts ---
+
+import { Request, Response } from 'express';
+import prisma from '../lib/prisma';
+import { CreateNoteInput, UpdateNoteInput } from './notes.validation';
+
+export async function createNote(req: Request<{}, {}, CreateNoteInput>, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  const { title, content } = req.body;
+
+  try {
+    const note = await prisma.note.create({
+      data: {
+        title,
+        content,
+        tenantId: req.user.tenantId,
+        userId: req.user.userId,
+      },
+    });
+    res.status(201).json(note);
+  } catch (error) {
+    console.error('Error creating note:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function getNotes(req: Request, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  try {
+    const notes = await prisma.note.findMany({
+      where: {
+        tenantId: req.user.tenantId,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(notes);
+  } catch (error) {
+    console.error('Error fetching notes:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function getNoteById(req: Request<{ id: string }>, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  const { id } = req.params;
+
+  try {
+    const note = await prisma.note.findUnique({
+      where: {
+        id,
+        tenantId: req.user.tenantId, // Ensure note belongs to the user's tenant
+      },
+    });
+
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found or not accessible' });
+    }
+    res.json(note);
+  } catch (error) {
+    console.error('Error fetching note by ID:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function updateNote(req: Request<{ id: string }, {}, UpdateNoteInput>, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  const { id } = req.params;
+  const { title, content } = req.body;
+
+  try {
+    const updatedNote = await prisma.note.updateMany({ // Use updateMany to implicitly check tenantId
+      where: {
+        id,
+        tenantId: req.user.tenantId,
+      },
+      data: {
+        title,
+        content,
+      },
+    });
+
+    if (updatedNote.count === 0) {
+      return res.status(404).json({ message: 'Note not found or not accessible' });
+    }
+
+    // Fetch the updated note to return it
+    const note = await prisma.note.findUnique({ where: { id } });
+    res.json(note);
+  } catch (error) {
+    console.error('Error updating note:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function deleteNote(req: Request<{ id: string }>, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  const { id } = req.params;
+
+  try {
+    const deletedNote = await prisma.note.deleteMany({ // Use deleteMany to implicitly check tenantId
+      where: {
+        id,
+        tenantId: req.user.tenantId,
+      },
+    });
+
+    if (deletedNote.count === 0) {
+      return res.status(404).json({ message: 'Note not found or not accessible' });
+    }
+    res.status(204).send(); // No content for successful deletion
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+--- END FILE: api\src\notes\notes.controller.ts ---
+
+--- START FILE: api\src\notes\notes.validation.ts ---
+
+import { z } from 'zod';
+
+export const createNoteSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, 'Title is required'),
+    content: z.string().optional(),
+  }),
+});
+
+export const updateNoteSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, 'Title is required').optional(),
+    content: z.string().optional(),
+  }),
+  params: z.object({
+    id: z.string().uuid('Invalid note ID format'),
+  }),
+});
+
+export type CreateNoteInput = z.infer<typeof createNoteSchema>['body'];
+export type UpdateNoteInput = z.infer<typeof updateNoteSchema>['body'];
+
+--- END FILE: api\src\notes\notes.validation.ts ---
+
+--- START FILE: api\src\tenants\tenants.controller.ts ---
+
+import { Request, Response } from 'express';
+import prisma from '../lib/prisma';
+import { TenantPlan } from '@prisma/client';
+import { UpgradeTenantPlanInput } from './tenants.validation';
+
+export async function upgradeTenantPlan(req: Request<UpgradeTenantPlanInput['params']>, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  const { slug } = req.params;
+
+  try {
+    // Find the tenant by slug
+    const tenantToUpgrade = await prisma.tenant.findUnique({
+      where: { slug },
+      select: { id: true, name: true, plan: true }
+    });
+
+    if (!tenantToUpgrade) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    // Ensure the admin user can only upgrade their own tenant
+    if (tenantToUpgrade.id !== req.user.tenantId) {
+      return res.status(403).json({ message: 'You are not authorized to upgrade this tenant' });
+    }
+
+    if (tenantToUpgrade.plan === TenantPlan.PRO) {
+      return res.status(200).json({ message: 'Tenant is already on Pro plan', tenant: tenantToUpgrade });
+    }
+
+    const updatedTenant = await prisma.tenant.update({
+      where: { id: tenantToUpgrade.id },
+      data: { plan: TenantPlan.PRO },
+      select: { id: true, name: true, slug: true, plan: true }
+    });
+
+    res.json({ message: `${updatedTenant.name} successfully upgraded to Pro plan.`, tenant: updatedTenant });
+  } catch (error) {
+    console.error('Error upgrading tenant plan:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+--- END FILE: api\src\tenants\tenants.controller.ts ---
+
+--- START FILE: api\src\tenants\tenants.validation.ts ---
+
+import { z } from 'zod';
+
+export const upgradeTenantPlanSchema = z.object({
+  params: z.object({
+    slug: z.string().min(1, 'Tenant slug is required'),
+  }),
+});
+
+export type UpgradeTenantPlanInput = z.infer<typeof upgradeTenantPlanSchema>;
+
+--- END FILE: api\src\tenants\tenants.validation.ts ---
+
+--- START FILE: api\src\types\express.d.ts ---
+
+// This file extends the Express Request type.
+// It must be placed in a .d.ts file and included by tsconfig.json to be picked up globally.
+// This allows req.user to be type-safe after the authenticateJWT middleware.
+
+import { AuthTokenPayload } from '../lib/jwt';
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthTokenPayload;
+    }
+  }
+}
+
+--- END FILE: api\src\types\express.d.ts ---
+
+--- START FILE: web\.env.example ---
+
+VITE_API_BASE_URL=http://localhost:5000/api
+
+--- END FILE: web\.env.example ---
+
+--- START FILE: web\index.html ---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SaaS Notes App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+--- END FILE: web\index.html ---
+
+--- START FILE: web\package.json ---
+
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/jwt-decode": "^3.1.0",
+    "axios": "^1.6.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.3",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}
+
+
+--- END FILE: web\package.json ---
+
+--- START FILE: web\postcss.config.js ---
+
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+--- END FILE: web\postcss.config.js ---
+
+--- START FILE: web\tailwind.config.js ---
+
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+--- END FILE: web\tailwind.config.js ---
+
+--- START FILE: web\tsconfig.json ---
+
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": "./src", // Optional, helps with explicit absolute imports from src
+                            // but not strictly needed if only relative imports are used.
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src", "vite-env.d.ts"], // Include all files in 'src' and the vite-env declaration
+  "references": [{ "path": "./tsconfig.node.json" }] // Reference the node config for Vite
+}
+
+--- END FILE: web\tsconfig.json ---
+
+--- START FILE: web\tsconfig.node.json ---
+
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "jsx": "react-jsx",
+    "types": ["node"] // Explicitly include Node.js types
+  },
+  "include": ["vite.config.ts"]
+}
+
+--- END FILE: web\tsconfig.node.json ---
+
+--- START FILE: web\vite-env.d.ts ---
+
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL: string;
+  // more env variables...
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+--- END FILE: web\vite-env.d.ts ---
+
+--- START FILE: web\vite.config.ts ---
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+
+--- END FILE: web\vite.config.ts ---
+
+--- START FILE: web\src\App.tsx ---
+
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center py-10">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;
+
+--- END FILE: web\src\App.tsx ---
+
+--- START FILE: web\src\index.css ---
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+--- END FILE: web\src\index.css ---
+
+--- START FILE: web\src\main.tsx ---
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.tsx'
+import './index.css' // Assuming you'll have a base CSS file for Tailwind
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+
+--- END FILE: web\src\main.tsx ---
+
+--- START FILE: web\src\api\axios.ts ---
+
+import axios from 'axios';
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;
+
+--- END FILE: web\src\api\axios.ts ---
+
+--- START FILE: web\src\components\NoteCard.tsx ---
+
+import React from 'react';
+
+interface NoteCardProps {
+  note: {
+    id: string;
+    title: string;
+    content?: string;
+    createdAt: string;
+  };
+  onDelete: (id: string) => void;
+}
+
+const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
+  return (
+    <div className="bg-white p-4 rounded shadow-md border border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-800">{note.title}</h3>
+      <p className="text-gray-600 mt-2 text-sm">{note.content}</p>
+      <div className="flex justify-between items-center mt-4 text-xs text-gray-500">
+        <span>Created: {new Date(note.createdAt).toLocaleDateString()}</span>
+        <button
+          onClick={() => onDelete(note.id)}
+          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default NoteCard;
+
+--- END FILE: web\src\components\NoteCard.tsx ---
+
+--- START FILE: web\src\components\ProtectedRoute.tsx ---
+
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+export default ProtectedRoute;
+
+--- END FILE: web\src\components\ProtectedRoute.tsx ---
+
+--- START FILE: web\src\context\AuthContext.tsx ---
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+//import apiClient from '../api/axios';
+import { jwtDecode } from 'jwt-decode'; // For decoding JWTs
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  login: (token: string) => void;
+  logout: () => void;
+  // Add an update user method if tenant plan changes on frontend
+  updateUser: (newUserData: Partial<User>) => void;
+}
+
+interface User {
+  id: string;
+  email: string;
+  role: 'ADMIN' | 'MEMBER';
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  plan: 'FREE' | 'PRO'; // Add plan to user context
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decodedToken: any = jwtDecode(token); // Decode token to get user info
+        const currentTime = Date.now() / 1000;
+        if (decodedToken.exp > currentTime) {
+          // Token is valid
+          setIsAuthenticated(true);
+          setUser({
+            id: decodedToken.userId,
+            email: decodedToken.email,
+            role: decodedToken.role,
+            tenantId: decodedToken.tenantId,
+            tenantName: decodedToken.tenantName || decodedToken.tenantSlug, // Fallback if name not in old token
+            tenantSlug: decodedToken.tenantSlug,
+            plan: decodedToken.plan || 'FREE', // Default to FREE if plan not in token (will be updated on dashboard load)
+          });
+        } else {
+          // Token expired
+          localStorage.removeItem('token');
+        }
+      } catch (error) {
+        console.error("Failed to decode token:", error);
+        localStorage.removeItem('token');
+      }
+    }
+  }, []);
+
+  const login = (token: string) => {
+    localStorage.setItem('token', token);
+    const decodedToken: any = jwtDecode(token);
+    setIsAuthenticated(true);
+    setUser({
+      id: decodedToken.userId,
+      email: decodedToken.email,
+      role: decodedToken.role,
+      tenantId: decodedToken.tenantId,
+      tenantName: decodedToken.tenantName || decodedToken.tenantSlug,
+      tenantSlug: decodedToken.tenantSlug,
+      plan: decodedToken.plan || 'FREE',
+    });
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setUser(null);
+  };
+
+  const updateUser = (newUserData: Partial<User>) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      return { ...prevUser, ...newUserData };
+    });
+  };
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+--- END FILE: web\src\context\AuthContext.tsx ---
+
+--- START FILE: web\src\pages\DashboardPage.tsx ---
+
+import React, { useEffect, useState } from 'react';
+import apiClient from '../api/axios';
+import { useAuth } from '../context/AuthContext';
+import NoteCard from '../components/NoteCard';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+interface TenantInfo {
+  id: string;
+  name: string;
+  slug: string;
+  plan: 'FREE' | 'PRO';
+}
+
+const DashboardPage: React.FC = () => {
+  const { user, logout, updateUser } = useAuth();
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [newNoteTitle, setNewNoteTitle] = useState<string>('');
+  const [newNoteContent, setNewNoteContent] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
+
+  const fetchNotes = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiClient.get('/notes');
+      setNotes(response.data);
+    } catch (err: any) {
+      console.error('Failed to fetch notes:', err);
+      setError(err.response?.data?.message || 'Failed to fetch notes.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTenantInfo = async () => {
+    if (!user) return;
+    try {
+      // Assuming a GET /api/tenants/:slug endpoint or including tenant info in user data
+      // For this demo, we'll use a dummy endpoint or rely on user context
+      // In a real app, you might have an endpoint like /api/me/tenant or /api/tenants/:slug
+      const response = await apiClient.get(`/tenants/${user.tenantSlug}`); // Assuming this endpoint exists, or adapting
+      setTenantInfo(response.data.tenant);
+      updateUser({ plan: response.data.tenant.plan }); // Update user context with latest plan
+    } catch (err) {
+      console.error('Failed to fetch tenant info:', err);
+      // Fallback to user context if API fails
+      setTenantInfo({
+        id: user.tenantId,
+        name: user.tenantName,
+        slug: user.tenantSlug,
+        plan: user.plan,
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchNotes();
+    fetchTenantInfo(); // Fetch tenant info on component mount
+  }, [user]);
+
+  const handleCreateNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNoteTitle.trim()) return;
+
+    setError(null);
+    try {
+      const response = await apiClient.post('/notes', {
+        title: newNoteTitle,
+        content: newNoteContent,
+      });
+      setNotes([response.data, ...notes]);
+      setNewNoteTitle('');
+      setNewNoteContent('');
+      fetchNotes(); // Re-fetch notes to ensure accurate count for limits
+      fetchTenantInfo(); // Re-fetch tenant info to check for plan updates
+    } catch (err: any) {
+      console.error('Failed to create note:', err);
+      setError(err.response?.data?.message || 'Failed to create note.');
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    setError(null);
+    try {
+      await apiClient.delete(`/notes/${id}`);
+      setNotes(notes.filter((note) => note.id !== id));
+      fetchNotes(); // Re-fetch notes to ensure accurate count for limits
+      fetchTenantInfo(); // Re-fetch tenant info to check for plan updates
+    } catch (err: any) {
+      console.error('Failed to delete note:', err);
+      setError(err.response?.data?.message || 'Failed to delete note.');
+    }
+  };
+
+  const handleUpgradePlan = async () => {
+    if (!user || user.role !== 'ADMIN' || !tenantInfo) return;
+    setError(null);
+    try {
+      const response = await apiClient.post(`/tenants/${user.tenantSlug}/upgrade`);
+      alert(response.data.message);
+      fetchTenantInfo(); // Re-fetch to update plan status
+    } catch (err: any) {
+      console.error('Failed to upgrade plan:', err);
+      setError(err.response?.data?.message || 'Failed to upgrade plan.');
+    }
+  };
+
+  if (loading) {
+    return <p className="text-gray-700">Loading notes...</p>;
+  }
+
+  const isFreePlan = tenantInfo?.plan === 'FREE';
+  const hasReachedLimit = isFreePlan && notes.length >= 3;
+  const isAdmin = user?.role === 'ADMIN';
+
+  return (
+    <div className="w-full max-w-2xl bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">
+          {user?.tenantName || 'Your'} Notes
+        </h1>
+        <button
+          onClick={logout}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline ml-2">{error}</span>
+        </div>
+      )}
+
+      {tenantInfo && (
+        <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800">
+          <p className="font-semibold">Tenant: {tenantInfo.name}</p>
+          <p>Plan: <span className={`font-bold ${tenantInfo.plan === 'PRO' ? 'text-green-600' : 'text-orange-600'}`}>{tenantInfo.plan}</span></p>
+          {isFreePlan && (
+            <p className="mt-2 text-sm">You have {notes.length} of 3 notes used. Upgrade to Pro for unlimited notes.</p>
+          )}
+          {isFreePlan && isAdmin && (
+            <button
+              onClick={handleUpgradePlan}
+              className="mt-3 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-sm"
+            >
+              Upgrade to Pro
+            </button>
+          )}
+        </div>
+      )}
+
+      <form onSubmit={handleCreateNote} className="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Create New Note</h2>
+        <input
+          type="text"
+          placeholder="Note Title"
+          value={newNoteTitle}
+          onChange={(e) => setNewNoteTitle(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md mb-3 focus:ring-blue-500 focus:border-blue-500"
+          disabled={hasReachedLimit && !isAdmin} // Disable for free users at limit
+        />
+        <textarea
+          placeholder="Note Content (optional)"
+          value={newNoteContent}
+          onChange={(e) => setNewNoteContent(e.target.value)}
+          rows={4}
+          className="w-full p-3 border border-gray-300 rounded-md mb-4 focus:ring-blue-500 focus:border-blue-500 resize-y"
+          disabled={hasReachedLimit && !isAdmin} // Disable for free users at limit
+        ></textarea>
+        <button
+          type="submit"
+          className={`w-full py-3 rounded-md font-semibold text-white transition-colors
+            ${hasReachedLimit && !isAdmin
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          disabled={hasReachedLimit && !isAdmin}
+        >
+          {hasReachedLimit && !isAdmin ? 'Limit Reached - Upgrade to Pro' : 'Add Note'}
+        </button>
+      </form>
+
+      <div className="grid gap-6">
+        {notes.length === 0 ? (
+          <p className="text-gray-600 text-center">No notes found. Start by creating one!</p>
+        ) : (
+          notes.map((note) => (
+            <NoteCard key={note.id} note={note} onDelete={handleDeleteNote} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;
+
+--- END FILE: web\src\pages\DashboardPage.tsx ---
+
+--- START FILE: web\src\pages\LoginPage.tsx ---
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/axios';
+import { useAuth } from '../context/AuthContext';
+
+const LoginPage: React.FC = () => {
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null); // Clear previous errors
+    try {
+      const response = await apiClient.post('/auth/login', { email, password });
+      login(response.data.token);
+      navigate('/'); // Redirect to dashboard
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 w-full">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-200">
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Login</h2>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline ml-2">{error}</span>
+          </div>
+        )}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-gray-700 text-sm font-semibold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="password" className="block text-gray-700 text-sm font-semibold mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white p-3 rounded-md font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Log In
+          </button>
+        </form>
+        <p className="text-center text-gray-600 text-sm mt-6">
+          Use the predefined test accounts (e.g., admin@acme.test, user@globex.test) with password: <span className="font-bold">password</span>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;
+
+--- END FILE: web\src\pages\LoginPage.tsx ---
+
+-------------------------------------------------------------------------------------------------
+
+the above are my project files, now i'll be sending you my assignment details so that you can check if everyhting is fine or not. 
+also i'll share the bugs or errors i am facing here, fix them as well.
+
+-------------------------------------------------------------------------------------
+
+Assignment:
+
+ Objective: Develop and deploy a multi-tenant SaaS Notes Application hosted on Vercel. The application should allow multiple tenants (companies) to securely manage their users and notes, while enforcing role-based access and subscription limits.  
+
+Requirements:
+
+1. Multi-Tenancy
+a. Support at least two tenants: Acme and Globex.
+b. Ensure strict isolation: data belonging to one tenant must never be accessible to another.
+c. You may select one of the following approaches: shared schema with a tenant ID column, schema-per-tenant, or database-per-tenant.
+d. Document your chosen approach in the README.
+
+2. Authentication and Authorization
+a. Implement JWT-based login.
+b. Roles:  ---Admin: can invite users and upgrade subscriptions. ---Member: can only create, view, edit, and delete notes.
+c. Provide the following mandatory test accounts (all with password: password):
+admin@acme.test (Admin, tenant: Acme)
+user@acme.test (Member, tenant: Acme)
+admin@globex.test (Admin, tenant: Globex)
+user@globex.test (Member, tenant: Globex)
+
+3. Subscription Feature Gating
+a. Free Plan: Tenant limited to a maximum of 3 notes.
+b. Pro Plan: Unlimited notes.
+c. Provide an upgrade endpoint: POST /tenants/:slug/upgrade (accessible only by Admin).
+After upgrade, the tenant’s note limit must be lifted immediately.
+
+4. Notes API (CRUD)
+Implement endpoints with tenant isolation and role enforcement:
+POST /notes – Create a note
+GET /notes – List all notes for the current tenant
+GET /notes/:id – Retrieve a specific note
+PUT /notes/:id – Update a note
+DELETE /notes/:id – Delete a note
+
+5. Deployment
+a. The backend and frontend must be hosted on Vercel.
+b. CORS must be enabled so that automated scripts and dashboards can access your API.
+c. Provide a health endpoint: GET /health → { "status": "ok" }.
+
+6. Frontend
+a. Provide a minimal frontend hosted on Vercel.
+b. Must support: login using the predefined accounts, listing/creating/deleting notes, and showing “Upgrade to Pro” when a Free tenant reaches the note limit.
+
+
+Evaluation Method:
+Your submission will be validated using automated test scripts. The tests will verify:
+
+a. Health endpoint availability.
+b. Successful login for all predefined accounts.
+c. Enforcement of tenant isolation.
+d. Role-based restrictions (for example, Member cannot invite users).
+e. Enforcement of the Free plan note limit, and removal of the limit after upgrade.
+f. Correct functioning of all CRUD endpoints.
+g. Presence and accessibility of the frontend.
+
+---------------------------------------------------------------------------------------------------------
+
+the error : 
+
+[{
+	"resource": "/D:/72 projects of python/multi-tenant SaaS Notes Application/web/tsconfig.node.json",
+	"owner": "typescript",
+	"severity": 8,
+	"message": "Cannot find type definition file for 'node'.\n  The file is in the program because:\n    Entry point of type library 'node' specified in compilerOptions",
+	"source": "ts",
+	"startLineNumber": 1,
+	"startColumn": 1,
+	"endLineNumber": 1,
+	"endColumn": 2,
+	"origin": "extHost1"
+}]
+
+---------------------------------------------------------------------------
+
+while logging in the password for predefined users is "password" but when i input that it says it's wrong.
+
+here are the console logs : 
+
+early-page.js:6602 [cs:early-page]: Running on page: http://localhost:5173/ top=true
+early-page.js:6602 [cs:early-page]: Assigned globalThis.twoseven
+hook.js:608 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. Error Component Stack
+    at BrowserRouter (react-router-dom.js?v=9872d986:5247:5)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. Error Component Stack
+    at BrowserRouter (react-router-dom.js?v=9872d986:5247:5)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+login:1 Unchecked runtime.lastError: The message port closed before a response was received.
+login:1 Unchecked runtime.lastError: The message port closed before a response was received.
+ TypeError: Cannot read properties of undefined (reading 'profile')
+    at onUpdate-profile (chrome-extension://cjdnfmjmdligcpfcekfmenlhiopehjkd/dist/contentScripts/views/modal/assets/index-CUHM8_N7.js:72853:26)
+logError @ chrome-extension://c…ex-CUHM8_N7.js:1639
+applygoat.com/version-test/api/1.1/obj/userinfo?constraints=%5B%7B%22key%22%3A%22email%22%2C%22constraint_type%22%3A%22equals%22%2C%22value%22%3A%22souparnopaulreborn%40gmail.com%22%7D%5D:1  Failed to load resource: the server responded with a status of 404 ()
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+hook.js:608 Login failed: AxiosError
+overrideMethod @ hook.js:608
+index.mjs:6923 modal.ts injected
+index.mjs:2367 [bg:index]: Hello World
