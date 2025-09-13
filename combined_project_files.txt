@@ -96,6 +96,30 @@ if __name__ == "__main__":
 
 --- END FILE: combined.py ---
 
+--- START FILE: vercel.json ---
+
+{
+  "installCommand": "npm install --prefix api && npm install --prefix web",
+  "buildCommand": "npm run build --prefix api && npm run prisma:migrate:deploy --prefix api && npm run build --prefix web",
+  "functions": {
+    "api/src/index.ts": {
+      "runtime": "node@20.x",
+      "memory": 1024,
+      "maxDuration": 10,
+      "includeFiles": "api/{prisma/schema.prisma,prisma/migrations/**,node_modules/.prisma/**,node_modules/@prisma/client/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/health", "destination": "/api/src/index.ts" },
+    { "source": "/api/(.*)", "destination": "/api/src/index.ts" },
+    { "source": "/(.*)", "destination": "/web/dist/$1" }
+  ],
+  "outputDirectory": "web/dist",
+  "framework": "vite"
+}
+
+--- END FILE: vercel.json ---
+
 --- START FILE: api\.env ---
 
 DATABASE_URL="postgresql://neondb_owner:npg_CNpzeP92yhVT@ep-cool-art-a14i6s1p-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
@@ -123,6 +147,7 @@ PORT=5000
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
     "prisma:seed": "npx prisma db seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -187,19 +212,6 @@ PORT=5000
 }
 
 --- END FILE: api\tsconfig.json ---
-
---- START FILE: api\vercel.json ---
-
-{
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "/api/index.ts"
-        }
-    ]
-}
-
---- END FILE: api\vercel.json ---
 
 --- START FILE: api\prisma\schema.prisma ---
 
@@ -615,20 +627,41 @@ export async function login(req: Request<{}, {}, LoginInput>, res: Response) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
+  const user = await prisma.user.findFirst({
+  where: { email },
+  include: {
+    tenant: true
+  }
+});
+
+console.log('User found for email:', email, '->', user ? user.id : 'No user');
+if (user) {
+  console.log('Password from request:', password);
+  console.log('Hashed password from DB:', user.passwordHash);
+}
+
+if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  return res.status(401).json({ message: 'Invalid credentials' });
+}
 }
 
 --- END FILE: api\src\auth\auth.controller.ts ---
 
 --- START FILE: api\src\auth\auth.validation.ts ---
 
+// api/src/auth/auth.validation.ts
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters long'),
+  body: z.object({ // <--- ADD THIS WRAPPER
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters long'),
+  }), // <--- AND CLOSE THE WRAPPER HERE
 });
 
-export type LoginInput = z.infer<typeof loginSchema>;
+// IMPORTANT: Also update the LoginInput type to match the new schema structure
+// It should now infer from the 'body' part of the schema
+export type LoginInput = z.infer<typeof loginSchema>['body'];
 
 --- END FILE: api\src\auth\auth.validation.ts ---
 
@@ -1003,11 +1036,11 @@ declare global {
 
 --- END FILE: api\src\types\express.d.ts ---
 
---- START FILE: web\.env.example ---
+--- START FILE: web\.env ---
 
 VITE_API_BASE_URL=http://localhost:5000/api
 
---- END FILE: web\.env.example ---
+--- END FILE: web\.env ---
 
 --- START FILE: web\index.html ---
 
@@ -1231,7 +1264,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 --- START FILE: web\src\api\axios.ts ---
 
+// web/src/api/axios.ts
 import axios from 'axios';
+
+// Add this line to see the resolved base URL
+console.log("Axios Base URL from VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -1724,131 +1761,15 @@ export default LoginPage;
 
 --- END FILE: web\src\pages\LoginPage.tsx ---
 
--------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
 
-the above are my project files, now i'll be sending you my assignment details so that you can check if everyhting is fine or not. 
-also i'll share the bugs or errors i am facing here, fix them as well.
+[16:52:40.436] Running build in Washington, D.C., USA (East) – iad1
+[16:52:40.437] Build machine configuration: 2 cores, 8 GB
+[16:52:40.451] Cloning github.com/sOuL2000s/multi-tenant-SaaS-Notes-Application (Branch: main, Commit: cdd933d)
+[16:52:40.565] Previous build caches not available
+[16:52:40.706] Cloning completed: 255.000ms
+[16:52:41.022] Running "vercel build"
+[16:52:41.409] Vercel CLI 47.1.1
+[16:52:41.576] Error: Function Runtimes must have a valid version, for example `now-php@1.0.0`.
 
--------------------------------------------------------------------------------------
-
-Assignment:
-
- Objective: Develop and deploy a multi-tenant SaaS Notes Application hosted on Vercel. The application should allow multiple tenants (companies) to securely manage their users and notes, while enforcing role-based access and subscription limits.  
-
-Requirements:
-
-1. Multi-Tenancy
-a. Support at least two tenants: Acme and Globex.
-b. Ensure strict isolation: data belonging to one tenant must never be accessible to another.
-c. You may select one of the following approaches: shared schema with a tenant ID column, schema-per-tenant, or database-per-tenant.
-d. Document your chosen approach in the README.
-
-2. Authentication and Authorization
-a. Implement JWT-based login.
-b. Roles:  ---Admin: can invite users and upgrade subscriptions. ---Member: can only create, view, edit, and delete notes.
-c. Provide the following mandatory test accounts (all with password: password):
-admin@acme.test (Admin, tenant: Acme)
-user@acme.test (Member, tenant: Acme)
-admin@globex.test (Admin, tenant: Globex)
-user@globex.test (Member, tenant: Globex)
-
-3. Subscription Feature Gating
-a. Free Plan: Tenant limited to a maximum of 3 notes.
-b. Pro Plan: Unlimited notes.
-c. Provide an upgrade endpoint: POST /tenants/:slug/upgrade (accessible only by Admin).
-After upgrade, the tenant’s note limit must be lifted immediately.
-
-4. Notes API (CRUD)
-Implement endpoints with tenant isolation and role enforcement:
-POST /notes – Create a note
-GET /notes – List all notes for the current tenant
-GET /notes/:id – Retrieve a specific note
-PUT /notes/:id – Update a note
-DELETE /notes/:id – Delete a note
-
-5. Deployment
-a. The backend and frontend must be hosted on Vercel.
-b. CORS must be enabled so that automated scripts and dashboards can access your API.
-c. Provide a health endpoint: GET /health → { "status": "ok" }.
-
-6. Frontend
-a. Provide a minimal frontend hosted on Vercel.
-b. Must support: login using the predefined accounts, listing/creating/deleting notes, and showing “Upgrade to Pro” when a Free tenant reaches the note limit.
-
-
-Evaluation Method:
-Your submission will be validated using automated test scripts. The tests will verify:
-
-a. Health endpoint availability.
-b. Successful login for all predefined accounts.
-c. Enforcement of tenant isolation.
-d. Role-based restrictions (for example, Member cannot invite users).
-e. Enforcement of the Free plan note limit, and removal of the limit after upgrade.
-f. Correct functioning of all CRUD endpoints.
-g. Presence and accessibility of the frontend.
-
----------------------------------------------------------------------------------------------------------
-
-the error : 
-
-[{
-	"resource": "/D:/72 projects of python/multi-tenant SaaS Notes Application/web/tsconfig.node.json",
-	"owner": "typescript",
-	"severity": 8,
-	"message": "Cannot find type definition file for 'node'.\n  The file is in the program because:\n    Entry point of type library 'node' specified in compilerOptions",
-	"source": "ts",
-	"startLineNumber": 1,
-	"startColumn": 1,
-	"endLineNumber": 1,
-	"endColumn": 2,
-	"origin": "extHost1"
-}]
-
----------------------------------------------------------------------------
-
-while logging in the password for predefined users is "password" but when i input that it says it's wrong.
-
-here are the console logs : 
-
-early-page.js:6602 [cs:early-page]: Running on page: http://localhost:5173/ top=true
-early-page.js:6602 [cs:early-page]: Assigned globalThis.twoseven
-hook.js:608 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. Error Component Stack
-    at BrowserRouter (react-router-dom.js?v=9872d986:5247:5)
-    at App (<anonymous>)
-overrideMethod @ hook.js:608
-hook.js:608 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. Error Component Stack
-    at BrowserRouter (react-router-dom.js?v=9872d986:5247:5)
-    at App (<anonymous>)
-overrideMethod @ hook.js:608
-login:1 Unchecked runtime.lastError: The message port closed before a response was received.
-login:1 Unchecked runtime.lastError: The message port closed before a response was received.
- TypeError: Cannot read properties of undefined (reading 'profile')
-    at onUpdate-profile (chrome-extension://cjdnfmjmdligcpfcekfmenlhiopehjkd/dist/contentScripts/views/modal/assets/index-CUHM8_N7.js:72853:26)
-logError @ chrome-extension://c…ex-CUHM8_N7.js:1639
-applygoat.com/version-test/api/1.1/obj/userinfo?constraints=%5B%7B%22key%22%3A%22email%22%2C%22constraint_type%22%3A%22equals%22%2C%22value%22%3A%22souparnopaulreborn%40gmail.com%22%7D%5D:1  Failed to load resource: the server responded with a status of 404 ()
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-auth/login:1  Failed to load resource: the server responded with a status of 404 (Not Found)
-hook.js:608 Login failed: AxiosError
-overrideMethod @ hook.js:608
-index.mjs:6923 modal.ts injected
-index.mjs:2367 [bg:index]: Hello World
+--------fix this error please.
