@@ -3,7 +3,7 @@
   "buildCommand": "npm run build --prefix api && npm run prisma:migrate:deploy --prefix api && npm run build --prefix web",
   "functions": {
     "api/src/index.ts": {
-      "runtime": "node@22.2.0", 
+      "runtime": "nodejs20.x",
       "memory": 1024,
       "maxDuration": 10,
       "includeFiles": "api/{prisma/schema.prisma,prisma/migrations/**,node_modules/.prisma/**,node_modules/@prisma/client/**}"
