@@ -1,0 +1,15 @@
+{
+  "name": "multi-tenant-saas-notes-application",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "postinstall": "npm install --prefix api && npm install --prefix web"
+  }
+}
