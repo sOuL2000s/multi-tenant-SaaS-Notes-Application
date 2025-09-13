@@ -1,0 +1,24 @@
+{
+  "installCommand": "npm install --prefix api && npm install --prefix web",
+  "buildCommand": "npm run build --prefix api && npm run prisma:migrate:deploy --prefix api && npm run build --prefix web",
+  "functions": {
+    "api/src/index.ts": {
+      "runtime": "nodejs20.x",
+      "memory": 1024,
+      "maxDuration": 10,
+      "includeFiles": [
+        "api/prisma/schema.prisma",
+        "api/prisma/migrations/**",
+        "api/node_modules/.prisma/**",
+        "api/node_modules/@prisma/client/**"
+      ]
+    }
+  },
+  "rewrites": [
+    { "source": "/health", "destination": "/api/src/index.ts" },
+    { "source": "/api/(.*)", "destination": "/api/src/index.ts" },
+    { "source": "/(.*)", "destination": "/web/dist/$1" }
+  ],
+  "outputDirectory": "web/dist",
+  "framework": "vite"
+}
