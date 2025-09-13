@@ -6,12 +6,7 @@
       "runtime": "nodejs20.x",
       "memory": 1024,
       "maxDuration": 10,
-      "includeFiles": [
-        "api/prisma/schema.prisma",
-        "api/prisma/migrations/**",
-        "api/node_modules/.prisma/**",
-        "api/node_modules/@prisma/client/**"
-      ]
+      "includeFiles": "api/{prisma/schema.prisma,prisma/migrations/**,node_modules/.prisma/**,node_modules/@prisma/client/**}"
     }
   },
   "rewrites": [
